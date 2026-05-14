@@ -20,6 +20,7 @@ export interface User {
   groups?: string[];
   role?: "Driver" | "Customer";
   customer_dashboard?: CustomerDashboard; // ← new
+  city_name?: string;
 }
 
 export type UserRole = "driver" | "customer";
