@@ -1,252 +1,350 @@
-import React, { useState, useRef } from "react";
+import React, { useMemo, useRef, useState } from "react";
+
 import {
-    View,
-    Text,
-    Image,
-    TouchableOpacity,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    Animated,
-    ActivityIndicator,
+  ActivityIndicator,
+  Animated,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { useRouter } from "expo-router";
+
+import { SafeAreaView } from "react-native-safe-area-context";
+
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
+
+import { useRouter } from "expo-router";
+
 import { AuthInput } from "../components/AuthInput";
 import { useRegister } from "../hooks/useRegister";
-import { httpClient } from "@services/api/httpClient";
 
-interface CityOption {
-    label: string;
-    value: string;
-}
-
-async function fetchCities(): Promise<CityOption[]> {
-    return httpClient.get<CityOption[]>("tenants/cities/") as unknown as CityOption[];
-}
+const CITY_OPTIONS = [
+  { label: "Nagpur", value: "nagpur" },
+  { label: "Pune", value: "pune" },
+  { label: "Mumbai", value: "mumbai" },
+];
 
 export default function RegisterScreen() {
-    const router = useRouter();
+  const router = useRouter();
 
-    const [username, setUsername] = useState("");
-    const [email, setEmail] = useState("");
-    const [phone, setPhone] = useState("");
-    const [password, setPassword] = useState("");
-    const [city, setCity] = useState("");
-    const [showPassword, setShowPassword] = useState(false);
-    const [showCityPicker, setShowCityPicker] = useState(false);
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
 
-    const dropdownAnim = useRef(new Animated.Value(0)).current;
+  const [city, setCity] = useState(
+    CITY_OPTIONS[0].value,
+  );
 
-    const { mutate: register, isPending, isError, error } = useRegister();
+  const [showPassword, setShowPassword] =
+    useState(false);
 
-    const {
-        data: cityOptions = [],
-        isLoading: isCitiesLoading,
-        isError: isCitiesError,
-    } = useQuery({
-        queryKey: ["cities"],
-        queryFn: fetchCities,
-        staleTime: 10 * 60 * 1000,
-    });
+  const [showCityPicker, setShowCityPicker] =
+    useState(false);
 
-    const isFormValid = username.trim() && email.trim() && phone.trim() && password.trim() && city;
+  const dropdownAnim = useRef(
+    new Animated.Value(0),
+  ).current;
 
-    function handleRegister() {
-        register({
-            username: username.trim(),
-            password,
-            email: email.trim(),
-            phone: phone.trim(),
-            role: "Customers",
-            is_customer: true,
-            tenant_schema: city,
-        });
-    }
+  const { mutate: register, isPending } =
+    useRegister();
 
-    function toggleCityPicker() {
-        const toValue = showCityPicker ? 0 : 1;
-        setShowCityPicker((v) => !v);
-        Animated.spring(dropdownAnim, {
-            toValue,
-            useNativeDriver: false,
-            damping: 18,
-            stiffness: 200,
-            mass: 0.8,
-        }).start();
-    }
-
-    const selectedCity = cityOptions.find((c) => c.value === city);
-
-    const dropdownHeight = dropdownAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: [0, cityOptions.length * 52],
-    });
-
+  const isFormValid = useMemo(() => {
     return (
-        <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            className="flex-1 bg-bg-screen"
+      username.trim() &&
+      email.trim() &&
+      phone.trim() &&
+      password.trim() &&
+      city
+    );
+  }, [username, email, phone, password, city]);
+
+  function handleRegister() {
+    register({
+      username: username.trim(),
+      password,
+      email: email.trim(),
+      phone: phone.trim(),
+      role: "Customers",
+      is_customer: true,
+      tenant_schema: city,
+    });
+  }
+
+  function toggleCityPicker() {
+    const next = !showCityPicker;
+
+    setShowCityPicker(next);
+
+    Animated.spring(dropdownAnim, {
+      toValue: next ? 1 : 0,
+      useNativeDriver: false,
+      damping: 18,
+      stiffness: 180,
+    }).start();
+  }
+
+  const selectedCity = CITY_OPTIONS.find(
+    (c) => c.value === city,
+  );
+
+  return (
+    <SafeAreaView className="flex-1 bg-bg-screen">
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={
+          Platform.OS === "ios"
+            ? "padding"
+            : undefined
+        }
+      >
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingBottom: 40,
+          }}
         >
-            <ScrollView
-                contentContainerStyle={{ flexGrow: 1 }}
-                keyboardShouldPersistTaps="handled"
+          {/* Header */}
+          <View className="px-6 pt-6">
+            <TouchableOpacity
+              onPress={() => router.back()}
+              className="h-11 w-11 items-center justify-center rounded-full bg-white"
             >
-                <View className="flex-1 px-screen-x py-10">
+              <Ionicons
+                name="chevron-back"
+                size={22}
+                color="#1A1A1A"
+              />
+            </TouchableOpacity>
+          </View>
 
-                    {/* Back */}
-                    <TouchableOpacity
-                        onPress={() => router.back()}
-                        className="self-start mb-4 flex-row items-center gap-x-1"
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                        <Ionicons name="arrow-back" size={18} color="#1A1A1A" />
-                        <Text className="text-body text-text-primary">Back</Text>
-                    </TouchableOpacity>
+          {/* Hero */}
+          <View className="items-center px-6 pt-4">
+            <Image
+              source={require("@assets/images/pench-logo.png")}
+              className="h-28 w-28"
+              resizeMode="contain"
+            />
 
-                    {/* Logo */}
-                    <Image
-                        source={require("@assets/images/logo.png")}
-                        className="w-16 h-16 self-center mb-4"
-                        resizeMode="contain"
+            {/* <Text className="mt-2 text-center text-xl font-bold text-text-primary">
+              Fresh Dairy,
+              {"\n"}
+              Delivered Daily 🥛
+            </Text> */}
+          </View>
+
+          {/* Form Card */}
+          <View className="mx-5 mt-8 rounded-[32px] bg-white px-5 py-6 shadow-sm">
+            <Text className="mb-6 text-2xl font-bold text-text-primary">
+              Create Account
+            </Text>
+
+            <View className="gap-y-4">
+
+              {/* Username */}
+              <AuthInput
+                placeholder="Choose a username"
+                value={username}
+                onChangeText={setUsername}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+
+              {/* Email */}
+              <AuthInput
+                placeholder="Email address"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+
+              {/* Phone */}
+              <AuthInput
+                placeholder="Phone number"
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="phone-pad"
+                maxLength={13}
+              />
+
+              {/* Password */}
+              <AuthInput
+                placeholder="Create password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                rightIcon={
+                  <TouchableOpacity
+                    onPress={() =>
+                      setShowPassword((v) => !v)
+                    }
+                  >
+                    <Ionicons
+                      name={
+                        showPassword
+                          ? "eye-off-outline"
+                          : "eye-outline"
+                      }
+                      size={20}
+                      color="#9E9E9E"
+                    />
+                  </TouchableOpacity>
+                }
+              />
+
+              {/* City Picker */}
+              <View>
+
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={toggleCityPicker}
+                  className="h-14 flex-row items-center justify-between rounded-full bg-bg-input px-5"
+                >
+                  <View className="flex-row items-center">
+                    <Ionicons
+                      name="location-outline"
+                      size={18}
+                      color="#9E9E9E"
                     />
 
-                    <Text className="text-title font-bold text-text-primary text-center mb-6">
-                        Create Account
+                    <Text className="ml-2 text-sm text-text-primary">
+                      {selectedCity?.label ??
+                        "Select city"}
                     </Text>
+                  </View>
 
-                    <View className="gap-y-4">
+                  <Animated.View
+                    style={{
+                      transform: [
+                        {
+                          rotate:
+                            dropdownAnim.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [
+                                "0deg",
+                                "180deg",
+                              ],
+                            }),
+                        },
+                      ],
+                    }}
+                  >
+                    <Ionicons
+                      name="chevron-down"
+                      size={18}
+                      color="#9E9E9E"
+                    />
+                  </Animated.View>
+                </TouchableOpacity>
 
-                        <AuthInput
-                            placeholder="Username"
-                            value={username}
-                            onChangeText={setUsername}
-                            autoCapitalize="none"
-                        />
+                {/* Dropdown */}
+                <Animated.View
+                  style={{
+                    maxHeight:
+                      dropdownAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [
+                          0,
+                          CITY_OPTIONS.length * 58,
+                        ],
+                      }),
+                    opacity: dropdownAnim,
+                    overflow: "hidden",
+                  }}
+                >
+                  <View className="mt-2 overflow-hidden rounded-3xl bg-bg-card">
 
-                        <AuthInput
-                            placeholder="Email"
-                            value={email}
-                            onChangeText={setEmail}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                        />
+                    {CITY_OPTIONS.map((option) => {
+                      const isSelected =
+                        city === option.value;
 
-                        <AuthInput
-                            placeholder="10-digit mobile number"
-                            value={phone}
-                            onChangeText={setPhone}
-                            keyboardType="phone-pad"
-                        />
-
-                        {/* Password with eye toggle via rightIcon */}
-                        <AuthInput
-                            placeholder="Min 8 characters"
-                            value={password}
-                            onChangeText={setPassword}
-                            secureTextEntry={!showPassword}
-                            rightIcon={
-                                <TouchableOpacity
-                                    onPress={() => setShowPassword((v) => !v)}
-                                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                                >
-                                    <Ionicons
-                                        name={showPassword ? "eye-off" : "eye"}
-                                        size={18}
-                                        color="#9E9E9E"
-                                    />
-                                </TouchableOpacity>
-                            }
-                        />
-
-                        {/* City Picker */}
-                        <View>
-                            <TouchableOpacity
-                                onPress={toggleCityPicker}
-                                disabled={isCitiesLoading}
-                                className="flex-row items-center justify-between px-4 py-3.5 bg-bg-input rounded-input border border-border-disable"
-                            >
-                                {isCitiesLoading ? (
-                                    <ActivityIndicator size="small" color="#9E9E9E" />
-                                ) : (
-                                    <Text className={`text-body ${city ? "text-text-primary" : "text-text-muted"}`}>
-                                        {selectedCity?.label ?? "Select your city"}
-                                    </Text>
-                                )}
-                                <Animated.View style={{
-                                    transform: [{
-                                        rotate: dropdownAnim.interpolate({
-                                            inputRange: [0, 1],
-                                            outputRange: ["0deg", "180deg"],
-                                        })
-                                    }]
-                                }}>
-                                    <Ionicons name="chevron-down" size={18} color="#9E9E9E" />
-                                </Animated.View>
-                            </TouchableOpacity>
-
-                            {isCitiesError && (
-                                <Text className="text-error text-caption mt-1">
-                                    Failed to load cities. Please restart the app.
-                                </Text>
-                            )}
-
-                            <Animated.View
-                                style={{ maxHeight: dropdownHeight, overflow: "hidden" }}
-                                className="bg-bg-card rounded-input border border-border-disable mt-1"
-                            >
-                                {cityOptions.map((option) => (
-                                    <TouchableOpacity
-                                        key={option.value}
-                                        onPress={() => {
-                                            setCity(option.value);
-                                            toggleCityPicker();
-                                        }}
-                                        className={`px-5 py-3.5 ${city === option.value ? "bg-brand-light" : "bg-white"}`}
-                                    >
-                                        <Text className="text-body text-text-primary">
-                                            {option.label}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </Animated.View>
-                        </View>
-
-                        {isError && (
-                            <Text className="text-error text-caption text-center">
-                                {(error as any)?.message ?? "Registration failed. Please try again."}
-                            </Text>
-                        )}
-
+                      return (
                         <TouchableOpacity
-                            onPress={handleRegister}
-                            disabled={!isFormValid || isPending || isCitiesLoading}
-                            activeOpacity={0.85}
-                            className={`w-full h-14 rounded-full items-center justify-center mt-2 ${isFormValid && !isPending ? "bg-brand-primary" : "bg-brand-primary/50"
-                                }`}
+                          key={option.value}
+                          onPress={() => {
+                            setCity(option.value);
+                            toggleCityPicker();
+                          }}
+                          className={`flex-row items-center justify-between px-5 py-4 ${
+                            isSelected
+                              ? "bg-brand-light"
+                              : "bg-white"
+                          }`}
                         >
-                            <Text className="text-label text-text-white">
-                                {isPending ? "Creating account..." : "Register"}
-                            </Text>
+                          <Text
+                            className={`text-base ${
+                              isSelected
+                                ? "font-semibold text-brand-primary"
+                                : "text-text-primary"
+                            }`}
+                          >
+                            {option.label}
+                          </Text>
+
+                          {isSelected && (
+                            <Ionicons
+                              name="checkmark-circle"
+                              size={20}
+                              color="#1B5E37"
+                            />
+                          )}
                         </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </Animated.View>
+              </View>
 
-                        <View className="flex-row justify-center items-center gap-x-1 mt-2">
-                            <Text className="text-body text-text-secondary">
-                                Already have an account?
-                            </Text>
-                            <TouchableOpacity onPress={() => router.back()}>
-                                <Text className="text-label text-brand-primary">Log in</Text>
-                            </TouchableOpacity>
-                        </View>
+              {/* CTA */}
+              <TouchableOpacity
+                activeOpacity={0.9}
+                disabled={
+                  !isFormValid || isPending
+                }
+                onPress={handleRegister}
+                className={`mt-3 h-14 items-center justify-center rounded-full ${
+                  isFormValid
+                    ? "bg-brand-primary"
+                    : "bg-brand-primary/40"
+                }`}
+              >
+                {isPending ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text className="text-base font-semibold text-white">
+                    Create Account
+                  </Text>
+                )}
+              </TouchableOpacity>
 
-                    </View>
-                </View>
-
-                <Text className="text-caption text-text-muted text-center pb-6">
-                    © 2024 Pench Foods. All rights reserved.
+              {/* Login */}
+              <View className="mt-4 flex-row items-center justify-center">
+                <Text className="text-sm text-text-secondary">
+                  Already have an account?
                 </Text>
-            </ScrollView>
-        </KeyboardAvoidingView>
-    );
+
+                <TouchableOpacity
+                  onPress={() => router.back()}
+                >
+                  <Text className="ml-1 text-sm font-semibold text-brand-primary">
+                    Log in
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
+          {/* Footer */}
+          <Text className="mt-8 text-center text-xs text-text-muted">
+            © 2026 Pench Foods. Freshness delivered daily.
+          </Text>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
 }

@@ -1,1 +1,1 @@
-// export { OTPScreen as default } from "@/features/auth";
+export { OTPScreen as default } from "@/features/auth";

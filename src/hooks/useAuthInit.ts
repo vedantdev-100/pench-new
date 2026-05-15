@@ -26,7 +26,7 @@ export function useAuthInit() {
                     try {
                         // ── cast to unknown first, then User — safe because
                         //    response interceptor already unwraps .data
-                        const me = await httpClient.get("/api/accounts/me/") as unknown as User;
+                        const me = await httpClient.get("accounts/me/") as unknown as User;
 
                         setUser(me);
                         setDomainAndRoute(me.tenant_schema, me.tenant_schema);
